@@ -67,18 +67,6 @@ def transcribe_audio(file, file_format):
 
 st.title('Asisten Pintar: Speech to Text')
 
-st.header("Upload file:")
-st.write("Upload an audio file (.wav, .mp3, .m4a) to be transcribed.")
-# Option to upload an audio file
-uploaded_file = st.file_uploader("Upload an audio file", type=['wav', 'mp3', 'm4a'])
-
-if uploaded_file is not None:
-    file_format = uploaded_file.name.split('.')[-1]
-    st.write("Processing transcription...")
-    transcript = transcribe_audio(uploaded_file, file_format)
-    st.write("Transcription Result:")
-    st.write(transcript)
-
 # Option to record audio using streamlit-mic-recorder
 st.header("Record Audio:")
 st.write("Press start recording to begin and press stop to finish. Wait for the transcription to complete after pressing stop.")
@@ -86,7 +74,8 @@ st.write("Press start recording to begin and press stop to finish. Wait for the 
 wav_audio_data = st_audiorec()
 
 if wav_audio_data is not None:
-       st.audio(wav_audio_data, format='audio/wav')
+    st.audio(wav_audio_data, format='audio/wav')    
+    st.write("Tipe data wav_audio_data:", type(wav_audio_data))
 
 with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
     if wav_audio_data is not None:
@@ -98,3 +87,15 @@ with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
         transcript = transcribe_audio(temp_file, file_format)
         st.write("Transcription Result:")
         st.write(transcript)
+
+st.header("Upload file:")
+st.write("Upload an audio file (.wav, .mp3, .m4a) to be transcribed.")
+# Option to upload an audio file
+uploaded_file = st.file_uploader("Upload an audio file", type=['wav', 'mp3', 'm4a'])
+
+if uploaded_file is not None:
+    file_format = uploaded_file.name.split('.')[-1]
+    st.write("Processing transcription...")
+    transcript = transcribe_audio(uploaded_file, file_format)
+    st.write("Transcription Result:")
+    st.write(transcript)
