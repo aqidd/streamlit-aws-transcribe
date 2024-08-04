@@ -74,8 +74,7 @@ st.write("Press start recording to begin and press stop to finish. Wait for the 
 wav_audio_data = st_audiorec()
 
 if wav_audio_data is not None:
-    st.audio(wav_audio_data, format='audio/wav')    
-    st.write("Tipe data wav_audio_data:", type(wav_audio_data))
+    st.audio(wav_audio_data, format='audio/wav')
 
 with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
     if wav_audio_data is not None:
