@@ -1,6 +1,7 @@
 import requests
 import streamlit as st
 import boto3
+from botocore.exceptions import ClientError
 import time
 from dotenv import load_dotenv
 import os
@@ -65,6 +66,58 @@ def transcribe_audio(file, file_format):
     else:
         return "Transcription failed"
 
+
+def process_transcription(transcript):
+    # Create a Bedrock Runtime client in the AWS Region you want to use.
+    client = boto3.client("bedrock-runtime", region_name="ap-northeast-1")
+
+    # Set the model ID, e.g., Titan Text Premier.
+    model_id = "anthropic.claude-v2:1"
+
+    # Start a conversation with the user message.
+    user_message = f"""Meeting transcript: 
+    {transcript}
+    Dari transkrip di atas, berikan kesimpulan dengan format sebagai berikut:
+
+    Keluhan Utama : <keluhan pasien waktu datang ke dokter>
+
+    Diagnosa: <diagnosa pasien>
+    
+    ICD10: <ICD10 code berdasarkan diagnosa>
+
+    Layanan / Tindakan: <layanan yang diberikan dokter dan/atau tindakan yang dilakukan ke pasien>
+
+    Status Kesadaran: <pilih di antara Compos Mentis, Somnolence, Sopor, Coma>
+
+    Status Pulang: <pilih di antara Berobat Jalan, Sehat, Rujuk, Meninggal>
+
+    """
+    conversation = [
+        {
+            "role": "user",
+            "content": [{"text": user_message}],
+        }
+    ]
+
+    try:
+        st.subheader("Ringkasan dengan AI")
+        # Send the message to the model, using a basic inference configuration.
+        response = client.converse(
+            modelId=model_id,
+            messages=conversation,
+            inferenceConfig={"maxTokens":4096,"stopSequences":["User:"],"temperature":0,"topP":1},
+            additionalModelRequestFields={}
+        )
+
+        # Extract and print the response text.
+        response_text = response["output"]["message"]["content"][0]["text"]
+        st.write(response_text)
+
+    except (ClientError, Exception) as e:
+        st.error(f"ERROR: Can't invoke '{model_id}'. Reason: {e}")
+        exit(1)
+
+
 st.title('Asisten Pintar: Speech to Text')
 
 # Option to record audio using streamlit-mic-recorder
@@ -84,8 +137,9 @@ with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
         file_format = temp_file.name.split('.')[-1]
         st.write("Processing transcription...")
         transcript = transcribe_audio(temp_file, file_format)
-        st.write("Transcription Result:")
+        st.subheader("Transcription Result:")
         st.write(transcript)
+        process_transcription(transcript)
 
 st.header("Upload file:")
 st.write("Upload an audio file (.wav, .mp3, .m4a) to be transcribed.")
@@ -96,5 +150,6 @@ if uploaded_file is not None:
     file_format = uploaded_file.name.split('.')[-1]
     st.write("Processing transcription...")
     transcript = transcribe_audio(uploaded_file, file_format)
-    st.write("Transcription Result:")
+    st.subheader("Transcription Result:")
     st.write(transcript)
+    process_transcription(transcript)
