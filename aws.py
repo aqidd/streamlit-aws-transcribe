@@ -74,23 +74,26 @@ def process_transcription(transcript):
     # Set the model ID, e.g., Titan Text Premier.
     model_id = "anthropic.claude-v2:1"
 
-    # Start a conversation with the user message.
-    user_message = f"""Meeting transcript: 
-    {transcript}
-    Dari transkrip di atas, berikan kesimpulan dengan format sebagai berikut:
+    st.subheader("Ringkasan dengan AI")
+    prompt = """Dari transkrip di atas, berikan kesimpulan dengan format sebagai berikut:
 
     Keluhan Utama : <keluhan pasien waktu datang ke dokter>
 
     Diagnosa: <diagnosa pasien>
-    
+
     ICD10: <ICD10 code berdasarkan diagnosa>
 
     Layanan / Tindakan: <layanan yang diberikan dokter dan/atau tindakan yang dilakukan ke pasien>
 
     Status Kesadaran: <pilih di antara Compos Mentis, Somnolence, Sopor, Coma>
 
-    Status Pulang: <pilih di antara Berobat Jalan, Sehat, Rujuk, Meninggal>
+    Status Pulang: <pilih di antara Berobat Jalan, Sehat, Rujuk, Meninggal>"""
 
+    # Start a conversation with the user message.
+    user_message = f"""Meeting transcript: 
+    {transcript}
+    
+    {prompt}
     """
     conversation = [
         {
@@ -100,7 +103,6 @@ def process_transcription(transcript):
     ]
 
     try:
-        st.subheader("Ringkasan dengan AI")
         # Send the message to the model, using a basic inference configuration.
         response = client.converse(
             modelId=model_id,
