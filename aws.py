@@ -48,7 +48,12 @@ def transcribe_audio(file, file_format):
         TranscriptionJobName=job_name,
         Media={'MediaFileUri': job_uri},
         MediaFormat=file_format,  # Pass the file format dynamically
-        LanguageCode='id-ID'  # Bahasa Indonesia
+        LanguageCode='id-ID',  # Bahasa Indonesia
+        Settings={
+            'ShowSpeakerLabels': True,
+            'MaxSpeakerLabels': 2,  # Adjust this number based on expected number of speakers
+            'ChannelIdentification': False
+        }
     )
 
     while True:
@@ -61,7 +66,45 @@ def transcribe_audio(file, file_format):
         transcript_file_uri = status['TranscriptionJob']['Transcript']['TranscriptFileUri']
         transcript_response = requests.get(transcript_file_uri)
         transcript_json = transcript_response.json()
-        transcript = transcript_json['results']['transcripts'][0]['transcript']
+        transcript = ""
+        combined_segments = []
+        current_segment = None
+
+        for segment in transcript_json['results']['audio_segments']:
+            if current_segment is None:
+                current_segment = segment
+            else:
+                current_end_time = float(current_segment['end_time'])
+                next_start_time = float(segment['start_time'])
+                
+                if next_start_time - current_end_time < 0.5:
+                    current_segment['end_time'] = segment['end_time']
+                    current_segment['transcript'] += ' ' + segment['transcript']
+                else:
+                    combined_segments.append(current_segment)
+                    current_segment = segment
+
+        if current_segment:
+            combined_segments.append(current_segment)
+
+        for segment in combined_segments:
+            start_time = float(segment['start_time'])
+            end_time = float(segment['end_time'])
+            content = segment['transcript']
+            
+            # Split the content if it contains a question mark
+            if '?' in content:
+                parts = content.split('?')
+                for i, part in enumerate(parts):
+                    if i < len(parts) - 1:
+                        part += '?'
+                    if part.strip():
+                        segment_duration = end_time - start_time
+                        part_start_time = start_time + (i * segment_duration / len(parts))
+                        part_end_time = start_time + ((i + 1) * segment_duration / len(parts))
+                        transcript += f"({part_start_time:.2f} - {part_end_time:.2f}): {part.strip()}  \n"
+            else:
+                transcript += f"({start_time:.2f} - {end_time:.2f}): {content}  \n"        
         return transcript
     else:
         return "Transcription failed"
